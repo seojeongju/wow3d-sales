@@ -67,6 +67,10 @@
                     <td>{{ "{:,}".format(purchase.price) }}원</td>
                     <td>{{ "{:,}".format(purchase.quantity * purchase.price) }}원</td>
                     <td>
+                        <td>
+                        <a href="{{ url_for('edit_purchase', id=purchase.id) }}" class="btn btn-warning btn-sm">수정</a>
+                        <form method="POST" action="{{ url_for('delete_purchase', id=purchase.id) }}" style="display:inline;" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                            <button type="submit" class="btn btn-danger btn-sm">삭제</button>
                         <a href="/purchase/edit/{{ purchase.id }}" class="btn btn-warning btn-sm">
                             ✏️ 수정
                         </a>
