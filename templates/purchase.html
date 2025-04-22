@@ -38,6 +38,13 @@
     </div>
   </form>
 
+  <!-- templates/purchase.html 내부 구매 리스트 테이블 내 -->
+<form action="{{ url_for('delete_purchase', id=p.id) }}" method="POST" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+  <button type="submit" class="btn btn-danger btn-sm">삭제</button>
+</form>
+<a href="{{ url_for('edit_purchase', id=p.id) }}" class="btn btn-warning btn-sm">수정</a>
+
+
   <table class="table table-hover text-center align-middle">
     <thead class="table-dark">
       <tr>
