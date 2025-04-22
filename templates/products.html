@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>제품 관리</h1>
+
+<!-- 제품 등록 폼 -->
+<form method="POST" class="mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="form-group">
+                <label for="name">제품명 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label for="description">설명</label>
+                <input type="text" class="form-control" id="description" name="description">
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label for="unit">단위</label>
+                <input type="text" class="form-control" id="unit" name="unit">
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label class="d-block">&nbsp;</label>
+            <button type="submit" class="btn btn-primary">등록</button>
+        </div>
+    </div>
+</form>
+
+<!-- 제품 목록 -->
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>제품명</th>
+                <th>설명</th>
+                <th>단위</th>
+                <th>현재 재고</th>
+                <th>작업</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if products %}
+                {% for product in products %}
+                    <tr id="product-{{ product.id }}">
+                        <td>{{ product.name }}</td>
+                        <td>{{ product.description }}</td>
+                        <td>{{ product.unit }}</td>
+                        <td>{{ product.stock }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-btn" 
+                                    data-id="{{ product.id }}"
+                                    data-name="{{ product.name }}"
+                                    data-description="{{ product.description }}"
+                                    data-unit="{{ product.unit }}">
+                                수정
+                            </button>
+                            <button class="btn btn-sm btn-danger delete-btn" 
+                                    data-id="{{ product.id }}">
+                                삭제
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="5" class="text-center">등록된 제품이 없습니다.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 수정 모달 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">제품 수정</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="edit_id">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">제품명 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">설명</label>
+                        <input type="text" class="form-control" id="edit_description">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_unit" class="form-label">단위</label>
+                        <input type="text" class="form-control" id="edit_unit">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-body" id="editError" style="display: none;">
+                <div class="alert alert-danger"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" id="saveEdit">저장</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">제품 삭제</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>정말 이 제품을 삭제하시겠습니까?</p>
+            </div>
+            <div class="modal-body" id="deleteError" style="display: none;">
+                <div class="alert alert-danger"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">삭제</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    let currentId = null;
+
+    // 수정 버튼 클릭
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            const description = this.dataset.description;
+            const unit = this.dataset.unit;
+
+            document.getElementById('edit_id').value = id;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_description').value = description;
+            document.getElementById('edit_unit').value = unit;
+            
+            document.getElementById('editError').style.display = 'none';
+            editModal.show();
+        });
+    });
+
+    // 수정 저장
+    document.getElementById('saveEdit').addEventListener('click', function() {
+        const id = document.getElementById('edit_id').value;
+        const name = document.getElementById('edit_name').value;
+        const description = document.getElementById('edit_description').value;
+        const unit = document.getElementById('edit_unit').value;
+
+        fetch(`/products/edit/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `name=${encodeURIComponent(name)}&description=${encodeURIComponent(description)}&unit=${encodeURIComponent(unit)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                document.getElementById('editError').style.display = 'block';
+                document.getElementById('editError').querySelector('.alert').textContent = data.message;
+            }
+        })
+        .catch(error => {
+            document.getElementById('editError').style.display = 'block';
+            document.getElementById('editError').querySelector('.alert').textContent = '오류가 발생했습니다.';
+        });
+    });
+
+    // 삭제 버튼 클릭
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            currentId = this.dataset.id;
+            document.getElementById('deleteError').style.display = 'none';
+            deleteModal.show();
+        });
+    });
+
+    // 삭제 확인
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        fetch(`/products/delete/${currentId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                document.getElementById('deleteError').style.display = 'block';
+                document.getElementById('deleteError').querySelector('.alert').textContent = data.message;
+            }
+        })
+        .catch(error => {
+            document.getElementById('deleteError').style.display = 'block';
+            document.getElementById('deleteError').querySelector('.alert').textContent = '오류가 발생했습니다.';
+        });
+    });
+});
+</script>
+{% endblock %} 

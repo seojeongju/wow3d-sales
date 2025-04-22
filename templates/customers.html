@@ -1,0 +1,242 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>판매처 관리</h1>
+<form method="POST" class="mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            <input type="text" name="name" class="form-control" placeholder="업체명" required>
+        </div>
+        <div class="col-md-3">
+            <input type="text" name="contact" class="form-control" placeholder="담당자">
+        </div>
+        <div class="col-md-3">
+            <input type="text" name="phone" class="form-control" placeholder="연락처">
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-md-2">
+            <input type="text" id="postcode" class="form-control" placeholder="우편번호" readonly>
+        </div>
+        <div class="col-md-2">
+            <input type="button" class="btn btn-secondary" onclick="execDaumPostcode()" value="우편번호 찾기">
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-md-6">
+            <input type="text" id="address" name="address" class="form-control" placeholder="주소" readonly>
+        </div>
+        <div class="col-md-6">
+            <input type="text" id="detailAddress" class="form-control" placeholder="상세주소">
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">
+        <i class="fas fa-plus"></i> 추가
+    </button>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>업체명</th>
+            <th>담당자</th>
+            <th>연락처</th>
+            <th>주소</th>
+            <th class="action-column">작업</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for customer in customers %}
+        <tr id="row-{{ customer.id }}">
+            <td>
+                <span class="view-mode">{{ customer.name }}</span>
+                <input type="text" class="form-control edit-mode edit-name" value="{{ customer.name }}" style="display: none;">
+            </td>
+            <td>
+                <span class="view-mode">{{ customer.contact }}</span>
+                <input type="text" class="form-control edit-mode edit-contact" value="{{ customer.contact }}" style="display: none;">
+            </td>
+            <td>
+                <span class="view-mode">{{ customer.phone }}</span>
+                <input type="text" class="form-control edit-mode edit-phone" value="{{ customer.phone }}" style="display: none;">
+            </td>
+            <td>
+                <span class="view-mode">{{ customer.address }}</span>
+                <div class="edit-mode" style="display: none;">
+                    <input type="text" class="form-control mb-1 edit-address" id="edit-address-{{ customer.id }}" value="{{ customer.address }}">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openAddressSearch({{ customer.id }})">
+                        <i class="fas fa-search"></i> 주소 검색
+                    </button>
+                </div>
+            </td>
+            <td>
+                <div class="view-mode btn-group">
+                    <button type="button" class="btn btn-sm btn-warning" onclick="toggleEdit({{ customer.id }})">
+                        <i class="fas fa-edit"></i> 수정
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteCustomer({{ customer.id }})">
+                        <i class="fas fa-trash"></i> 삭제
+                    </button>
+                </div>
+                <div class="edit-mode" style="display: none;">
+                    <button type="button" class="btn btn-sm btn-success me-1" onclick="saveCustomer({{ customer.id }})">
+                        <i class="fas fa-save"></i> 저장
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit({{ customer.id }})">
+                        <i class="fas fa-times"></i> 취소
+                    </button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Daum 우편번호 서비스 스크립트 -->
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+    // 우편번호 찾기
+    function execDaumPostcode() {
+        new daum.Postcode({
+            oncomplete: function(data) {
+                document.getElementById('postcode').value = data.zonecode;
+                document.getElementById('address').value = data.address;
+                document.getElementById('detailAddress').focus();
+                updateFullAddress();
+            }
+        }).open();
+    }
+
+    // 상세주소가 변경될 때마다 전체 주소 업데이트
+    function updateFullAddress() {
+        const address = document.getElementById('address').value;
+        const detailAddress = document.getElementById('detailAddress').value;
+        const fullAddress = address + (detailAddress ? ' ' + detailAddress : '');
+        document.getElementById('address').value = fullAddress;
+    }
+
+    // 수정 모드에서 주소 검색
+    function openAddressSearch(id) {
+        new daum.Postcode({
+            oncomplete: function(data) {
+                const editAddressInput = document.getElementById(`edit-address-${id}`);
+                editAddressInput.value = data.address;
+            }
+        }).open();
+    }
+
+    // 수정 모드 토글
+    function toggleEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        if (!row) return;
+
+        const viewModeElements = row.querySelectorAll('.view-mode');
+        const editModeElements = row.querySelectorAll('.edit-mode');
+
+        viewModeElements.forEach(el => el.style.display = 'none');
+        editModeElements.forEach(el => el.style.display = 'block');
+    }
+
+    // 수정 취소
+    function cancelEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        if (!row) return;
+
+        const viewModeElements = row.querySelectorAll('.view-mode');
+        const editModeElements = row.querySelectorAll('.edit-mode');
+
+        viewModeElements.forEach(el => el.style.display = 'block');
+        editModeElements.forEach(el => el.style.display = 'none');
+    }
+
+    // 수정사항 저장
+    async function saveCustomer(id) {
+        const row = document.getElementById(`row-${id}`);
+        if (!row) {
+            alert('행을 찾을 수 없습니다.');
+            return;
+        }
+
+        // 클래스 이름으로 입력 필드 찾기
+        const nameInput = row.querySelector('.edit-name');
+        const contactInput = row.querySelector('.edit-contact');
+        const phoneInput = row.querySelector('.edit-phone');
+        const addressInput = row.querySelector('.edit-address');
+
+        // 입력 필드 확인
+        if (!nameInput || !contactInput || !phoneInput || !addressInput) {
+            console.error('Missing inputs:', {
+                name: nameInput,
+                contact: contactInput,
+                phone: phoneInput,
+                address: addressInput
+            });
+            alert('입력 필드를 찾을 수 없습니다.');
+            return;
+        }
+
+        // FormData 객체 생성 및 데이터 추가
+        const formData = new FormData();
+        formData.append('name', nameInput.value.trim());
+        formData.append('contact', contactInput.value.trim());
+        formData.append('phone', phoneInput.value.trim());
+        formData.append('address', addressInput.value.trim());
+
+        try {
+            const response = await fetch(`/customers/edit/${id}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('서버 응답 오류');
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                window.location.reload();
+            } else {
+                alert(result.message || '수정 중 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('수정 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 삭제
+    async function deleteCustomer(id) {
+        try {
+            const checkResponse = await fetch(`/customers/check/${id}`);
+            if (!checkResponse.ok) {
+                throw new Error('서버 응답 오류');
+            }
+
+            const checkResult = await checkResponse.json();
+            if (!checkResult.can_delete) {
+                alert(checkResult.message);
+                return;
+            }
+
+            if (confirm('정말 삭제하시겠습니까?')) {
+                const response = await fetch(`/customers/delete/${id}`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    throw new Error('서버 응답 오류');
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert(result.message || '삭제 중 오류가 발생했습니다.');
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    }
+</script>
+{% endblock %} 

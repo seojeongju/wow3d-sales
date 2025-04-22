@@ -1,0 +1,112 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>종합 현황</h1>
+
+<!-- 월 선택 폼 -->
+<form id="monthSelectForm" class="mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            <input type="month" id="selectedMonth" name="month" class="form-control" 
+                   value="{{ selected_month }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary">조회</button>
+        </div>
+    </div>
+</form>
+
+{% if error %}
+    <div class="alert alert-warning">{{ error }}</div>
+{% else %}
+    <!-- 재고 현황 -->
+    <h3>재고 현황 ({{ selected_month }})</h3>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th><i class="bi bi-box"></i> 제품명</th>
+                    <th>현재 재고</th>
+                    <th>구매량</th>
+                    <th>판매량</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if products %}
+                    {% for product in products %}
+                        <tr>
+                            <td>{{ product.name }}</td>
+                            <td>{{ product.stock }}</td>
+                            <td>{{ product_stats.get(product.id, {}).get('purchase_qty', 0) }}</td>
+                            <td>{{ product_stats.get(product.id, {}).get('sale_qty', 0) }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">데이터가 없습니다.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 거래 현황 -->
+    <div class="row mt-4">
+        <!-- 구매 현황 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4>구매 현황</h4>
+                    <table class="table">
+                        <tr>
+                            <th>총 구매액</th>
+                            <td class="text-end">{{ "{:,.0f}".format(purchase_total|default(0)) }}원</td>
+                        </tr>
+                        <tr>
+                            <th>거래 건수</th>
+                            <td class="text-end">{{ purchases|length }}건</td>
+                        </tr>
+                        <tr>
+                            <th>평균 거래액</th>
+                            <td class="text-end">{{ "{:,.0f}".format(purchase_avg|default(0)) }}원</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 판매 현황 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h4>판매 현황</h4>
+                    <table class="table">
+                        <tr>
+                            <th>총 판매액</th>
+                            <td class="text-end">{{ "{:,.0f}".format(sale_total|default(0)) }}원</td>
+                        </tr>
+                        <tr>
+                            <th>거래 건수</th>
+                            <td class="text-end">{{ sales|length }}건</td>
+                        </tr>
+                        <tr>
+                            <th>평균 거래액</th>
+                            <td class="text-end">{{ "{:,.0f}".format(sale_avg|default(0)) }}원</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<script>
+document.getElementById('monthSelectForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const selectedMonth = document.getElementById('selectedMonth').value;
+    if (selectedMonth) {
+        window.location.href = `/summary?month=${selectedMonth}`;
+    }
+});
+</script>
+{% endblock %} 

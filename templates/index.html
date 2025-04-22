@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>재고 현황</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>제품명</th>
+            <th>단위</th>
+            <th>현재 재고</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for product in products %}
+        <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.unit }}</td>
+            <td>{{ product.stock }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %} 

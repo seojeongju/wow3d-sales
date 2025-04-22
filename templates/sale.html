@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>판매 관리</h1>
+
+<!-- 판매 등록 폼 -->
+<form method="POST" class="mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="form-group">
+                <label for="product_id">제품 <span class="text-danger">*</span></label>
+                <select class="form-control" id="product_id" name="product_id" required>
+                    <option value="">제품을 선택하세요</option>
+                    {% for product in products %}
+                        <option value="{{ product.id }}">{{ product.name }} (재고: {{ product.stock }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label for="customer_id">판매처 <span class="text-danger">*</span></label>
+                <select class="form-control" id="customer_id" name="customer_id" required>
+                    <option value="">판매처를 선택하세요</option>
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}">{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-group">
+                <label for="quantity">수량 <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-group">
+                <label for="price">단가 <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" required>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <label class="d-block">&nbsp;</label>
+            <button type="submit" class="btn btn-primary">등록</button>
+        </div>
+    </div>
+</form>
+
+<!-- 판매 목록 -->
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>날짜</th>
+                <th>제품명</th>
+                <th>판매처</th>
+                <th>수량</th>
+                <th>단가</th>
+                <th>총액</th>
+                <th>작업</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if sales %}
+                {% for sale in sales %}
+                    <tr id="sale-{{ sale.id }}">
+                        <td>{{ sale.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ products|selectattr('id', 'eq', sale.product_id)|first|attr('name') }}</td>
+                        <td>{{ customers|selectattr('id', 'eq', sale.customer_id)|first|attr('name') }}</td>
+                        <td>{{ sale.quantity }}</td>
+                        <td>{{ "{:,.0f}".format(sale.price) }}원</td>
+                        <td>{{ "{:,.0f}".format(sale.quantity * sale.price) }}원</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger delete-btn" 
+                                    data-id="{{ sale.id }}"
+                                    onclick="deleteSale({{ sale.id }})">
+                                삭제
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="7" class="text-center">판매 내역이 없습니다.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function deleteSale(id) {
+    if (confirm('정말 이 판매 내역을 삭제하시겠습니까?')) {
+        fetch(`/sale/delete/${id}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || '삭제 중 오류가 발생했습니다.');
+            }
+        })
+        .catch(error => {
+            alert('삭제 중 오류가 발생했습니다.');
+        });
+    }
+}
+
+// 재고 확인 및 수량 제한
+document.getElementById('product_id').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const stockMatch = selectedOption.text.match(/재고: (\d+)/);
+    if (stockMatch) {
+        const stock = parseInt(stockMatch[1]);
+        document.getElementById('quantity').max = stock;
+    }
+});
+
+// 숫자 입력 필드에 대한 유효성 검사
+document.getElementById('quantity').addEventListener('input', function() {
+    if (this.value < 1) {
+        this.value = 1;
+    }
+});
+
+document.getElementById('price').addEventListener('input', function() {
+    if (this.value < 0) {
+        this.value = 0;
+    }
+});
+</script>
+{% endblock %} 

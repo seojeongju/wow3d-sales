@@ -1,0 +1,203 @@
+{% extends "layout.html" %}
+{% block content %}
+<h1>구매처 관리</h1>
+<form method="POST" class="mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            <input type="text" name="name" class="form-control" placeholder="업체명" required>
+        </div>
+        <div class="col-md-3">
+            <input type="text" name="contact" class="form-control" placeholder="담당자">
+        </div>
+        <div class="col-md-3">
+            <input type="text" name="phone" class="form-control" placeholder="연락처">
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-md-2">
+            <input type="text" id="postcode" class="form-control" placeholder="우편번호" readonly>
+        </div>
+        <div class="col-md-2">
+            <input type="button" class="btn btn-secondary" onclick="execDaumPostcode()" value="우편번호 찾기">
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-md-6">
+            <input type="text" id="address" name="address" class="form-control" placeholder="주소" readonly>
+        </div>
+        <div class="col-md-6">
+            <input type="text" id="detailAddress" class="form-control" placeholder="상세주소">
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">추가</button>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>업체명</th>
+            <th>담당자</th>
+            <th>연락처</th>
+            <th>주소</th>
+            <th style="width: 150px;">작업</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for supplier in suppliers %}
+        <tr id="row-{{ supplier.id }}">
+            <td>
+                <span class="view-mode">{{ supplier.name }}</span>
+                <input type="text" class="form-control edit-mode" value="{{ supplier.name }}" style="display: none;">
+            </td>
+            <td>
+                <span class="view-mode">{{ supplier.contact }}</span>
+                <input type="text" class="form-control edit-mode" value="{{ supplier.contact }}" style="display: none;">
+            </td>
+            <td>
+                <span class="view-mode">{{ supplier.phone }}</span>
+                <input type="text" class="form-control edit-mode" value="{{ supplier.phone }}" style="display: none;">
+            </td>
+            <td>
+                <span class="view-mode">{{ supplier.address }}</span>
+                <div class="edit-mode" style="display: none;">
+                    <input type="text" class="form-control mb-1" id="edit-address-{{ supplier.id }}" value="{{ supplier.address }}">
+                    <button class="btn btn-sm btn-secondary" onclick="openAddressSearch({{ supplier.id }})">주소 검색</button>
+                </div>
+            </td>
+            <td>
+                <div class="view-mode btn-group">
+                    <button class="btn btn-sm btn-warning" onclick="toggleEdit({{ supplier.id }})">
+                        <i class="fas fa-edit"></i> 수정
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSupplier({{ supplier.id }})">
+                        <i class="fas fa-trash"></i> 삭제
+                    </button>
+                </div>
+                <div class="edit-mode" style="display: none;">
+                    <button class="btn btn-sm btn-success me-1" onclick="saveSupplier({{ supplier.id }})">
+                        <i class="fas fa-save"></i> 저장
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="cancelEdit({{ supplier.id }})">
+                        <i class="fas fa-times"></i> 취소
+                    </button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Font Awesome 아이콘 -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+
+<!-- Daum 우편번호 서비스 스크립트 -->
+<script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+<style>
+    .edit-mode {
+        display: none;
+    }
+    .btn-sm {
+        margin: 0 2px;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+    .btn-group {
+        display: flex;
+        gap: 4px;
+    }
+    .edit-mode button {
+        min-width: 70px;
+    }
+    .btn i {
+        margin-right: 4px;
+    }
+</style>
+
+<script>
+    // 우편번호 찾기 함수
+    function execDaumPostcode() {
+        new daum.Postcode({
+            oncomplete: function(data) {
+                document.getElementById('postcode').value = data.zonecode;
+                document.getElementById('address').value = data.address;
+                document.getElementById('detailAddress').focus();
+            }
+        }).open();
+    }
+
+    // 수정 모드에서 주소 검색
+    function openAddressSearch(id) {
+        new daum.Postcode({
+            oncomplete: function(data) {
+                document.getElementById(`edit-address-${id}`).value = data.address;
+            }
+        }).open();
+    }
+
+    // 수정 모드 토글
+    function toggleEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        row.querySelectorAll('.view-mode').forEach(el => el.style.display = 'none');
+        row.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'block');
+    }
+
+    // 수정 취소
+    function cancelEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        row.querySelectorAll('.view-mode').forEach(el => el.style.display = 'block');
+        row.querySelectorAll('.edit-mode').forEach(el => el.style.display = 'none');
+    }
+
+    // 수정사항 저장
+    async function saveSupplier(id) {
+        const row = document.getElementById(`row-${id}`);
+        const formData = new FormData();
+        
+        formData.append('name', row.querySelector('input[type="text"]:nth-child(2)').value);
+        formData.append('contact', row.querySelectorAll('input[type="text"]')[2].value);
+        formData.append('phone', row.querySelectorAll('input[type="text"]')[3].value);
+        formData.append('address', document.getElementById(`edit-address-${id}`).value);
+
+        try {
+            const response = await fetch(`/suppliers/edit/${id}`, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('수정 중 오류가 발생했습니다.');
+            }
+        } catch (error) {
+            alert('수정 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 삭제
+    async function deleteSupplier(id) {
+        const checkResponse = await fetch(`/suppliers/check/${id}`);
+        const checkResult = await checkResponse.json();
+        
+        if (!checkResult.can_delete) {
+            alert(checkResult.message);
+            return;
+        }
+        
+        if (confirm('정말 삭제하시겠습니까?')) {
+            const response = await fetch(`/suppliers/delete/${id}`, {
+                method: 'POST'
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        }
+    }
+</script>
+{% endblock %} 
