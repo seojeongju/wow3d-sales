@@ -3,7 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventory.db'
+# SQLite (기존 DB)
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventory.db'
+# PostgreSQL (Cloudtype 연결용 DB)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://odoo:odoo@svc.sel4.cloudtype.app:30110/odoo'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 db = SQLAlchemy(app)
