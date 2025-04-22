@@ -410,6 +410,49 @@ def delete_sale(id):
     flash('판매 내역이 삭제되었습니다.')
     return jsonify({'success': True})
 
+# 구매 수정
+@app.route('/purchase/edit/<int:id>', methods=['GET', 'POST'])
+def edit_purchase(id):
+    purchase = Purchase.query.get_or_404(id)
+    products = Product.query.all()
+    suppliers = Supplier.query.all()
+
+    if request.method == 'POST':
+        # 재고 원상복구 (기존 구매 수량 제거)
+        product = Product.query.get(purchase.product_id)
+        product.stock -= purchase.quantity
+
+        # 새 값으로 갱신
+        purchase.product_id = int(request.form['product_id'])
+        purchase.supplier_id = int(request.form['supplier_id'])
+        purchase.quantity = int(request.form['quantity'])
+        purchase.price = float(request.form['price'])
+
+        # 새로운 제품의 재고 추가
+        new_product = Product.query.get(purchase.product_id)
+        new_product.stock += purchase.quantity
+
+        db.session.commit()
+        flash('구매 내역이 수정되었습니다.')
+        return redirect(url_for('purchase'))
+
+    return render_template('purchase_edit.html', purchase=purchase, products=products, suppliers=suppliers)
+
+# 구매 삭제
+@app.route('/purchase/delete/<int:id>', methods=['POST'])
+def delete_purchase(id):
+    purchase = Purchase.query.get_or_404(id)
+
+    # 재고 복원
+    product = Product.query.get(purchase.product_id)
+    product.stock -= purchase.quantity
+
+    db.session.delete(purchase)
+    db.session.commit()
+    flash('구매 내역이 삭제되었습니다.')
+    return redirect(url_for('purchase'))
+
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
