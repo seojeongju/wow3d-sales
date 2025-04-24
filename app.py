@@ -155,13 +155,11 @@ def sale():
     return render_template('sale.html', products=products, customers=customers, sales=sales)
 
 @app.route('/purchase/edit/<int:id>', methods=['GET', 'POST'])
-def edit_purchase(id):
-    ...
-
+def edit_purchase():
+    
 @app.route('/purchase/delete/<int:id>', methods=['POST'])
 def delete_purchase(id):
-    ...
-
+    
 @app.route('/summary')
 def summary():
     # Get the selected month from query parameters, default to current month
