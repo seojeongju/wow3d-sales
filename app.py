@@ -154,11 +154,13 @@ def sale():
     sales = Sale.query.all()
     return render_template('sale.html', products=products, customers=customers, sales=sales)
 
-@app.route('/purchase/edit/<int:id>', methods=['GET', 'POST'])
-def edit_purchase():
-    
-@app.route('/purchase/delete/<int:id>', methods=['POST'])
-def delete_purchase(id):
+@app.route('/purchase/edit/<int:id>', methods=['GET'])
+def edit_purchase_form(id):
+    ...
+
+@app.route('/purchase/edit/<int:id>', methods=['POST'])
+def edit_purchase_submit(id):
+    ...
     
 @app.route('/summary')
 def summary():
